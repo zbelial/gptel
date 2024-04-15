@@ -1228,24 +1228,28 @@ INTERACTIVEP is t when gptel is called interactively."
                                   (region-end)))
            t)))
   (with-current-buffer (get-buffer-create name)
-    (cond ;Set major mode
-     ((eq major-mode gptel-default-mode))
-     ((eq gptel-default-mode 'text-mode)
-      (text-mode)
-      (visual-line-mode 1))
-     (t (funcall gptel-default-mode)))
-    (gptel--sanitize-model :backend (default-value 'gptel-backend)
-                           :model (default-value 'gptel-model)
-                           :shoosh nil)
-    (unless gptel-mode (gptel-mode 1))
-    (goto-char (point-max))
-    (skip-chars-backward "\t\r\n")
-    (if (bobp) (insert (or initial (gptel-prompt-prefix-string))))
-    (when interactivep
-      (display-buffer (current-buffer) gptel-display-buffer-action)
-      (message "Send your query with %s!"
-               (substitute-command-keys "\\[gptel-send]")))
-    (current-buffer)))
+    (let ((backend (default-value 'gptel-backend))
+          (model (default-value 'gptel-model)))
+      (cond ;Set major mode
+       ((eq major-mode gptel-default-mode))
+       ((eq gptel-default-mode 'text-mode)
+        (text-mode)
+        (visual-line-mode 1))
+       (t (funcall gptel-default-mode)))
+      (set (make-local-variable 'gptel-backend) backend)
+      (set (make-local-variable 'gptel-model) model)
+      (gptel--sanitize-model :backend gptel-backend
+                             :model gptel-model
+                             :shoosh nil)
+      (unless gptel-mode (gptel-mode 1))
+      (goto-char (point-max))
+      (skip-chars-backward "\t\r\n")
+      (if (bobp) (insert (or initial (gptel-prompt-prefix-string))))
+      (when interactivep
+        (display-buffer (current-buffer) gptel-display-buffer-action)
+        (message "Send your query with %s!"
+                 (substitute-command-keys "\\[gptel-send]")))
+      (current-buffer))))
 
 
 ;; Response tweaking commands
