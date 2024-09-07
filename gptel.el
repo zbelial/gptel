@@ -32,8 +32,8 @@
 ;; gptel supports
 ;;
 ;; - The services ChatGPT, Azure, Gemini, Anthropic AI, Anyscale, Together.ai,
-;;   Perplexity, Anyscale, OpenRouter, Groq, PrivateGPT, DeepSeek and Kagi
-;;   (FastGPT & Summarizer)
+;;   Perplexity, Anyscale, OpenRouter, Groq, PrivateGPT, DeepSeek, Cerebras and
+;;   Kagi (FastGPT & Summarizer)
 ;; - Local models via Ollama, Llama.cpp, Llamafiles or GPT4All
 ;;
 ;;  Additionally, any LLM service (local or remote) that provides an
@@ -61,8 +61,8 @@
 ;; - For Gemini: define a gptel-backend with `gptel-make-gemini', which see.
 ;; - For Anthropic (Claude): define a gptel-backend with `gptel-make-anthropic',
 ;;   which see
-;; - For Together.ai, Anyscale, Perplexity, Groq, OpenRouter or DeepSeek: define
-;;   a gptel-backend with `gptel-make-openai', which see.
+;; - For Together.ai, Anyscale, Perplexity, Groq, OpenRouter, DeepSeek or
+;;   Cerebras: define a gptel-backend with `gptel-make-openai', which see.
 ;; - For PrivateGPT: define a backend with `gptel-make-privategpt', which see.
 ;; - For Kagi: define a gptel-backend with `gptel-make-kagi', which see.
 ;;
@@ -412,6 +412,7 @@ by the LLM provider's API.
 The current options for ChatGPT are
 - \"gpt-3.5-turbo\"
 - \"gpt-3.5-turbo-16k\"
+- \"gpt-4o-mini\"
 - \"gpt-4\"
 - \"gpt-4o\"
 - \"gpt-4-turbo\"
@@ -424,6 +425,7 @@ To set the model for a chat session interactively call
   :safe #'always
   :type '(choice
           (string :tag "Specify model name")
+          (const :tag "GPT 4 omni mini" "gpt-4o-mini")
           (const :tag "GPT 3.5 turbo" "gpt-3.5-turbo")
           (const :tag "GPT 3.5 turbo 16k" "gpt-3.5-turbo-16k")
           (const :tag "GPT 4" "gpt-4")
@@ -451,9 +453,9 @@ To set the temperature for a chat session interactively call
    "ChatGPT"
    :key 'gptel-api-key
    :stream t
-   :models '("gpt-3.5-turbo" "gpt-3.5-turbo-16k" "gpt-4" "gpt-4o"
-             "gpt-4-turbo" "gpt-4-turbo-preview" "gpt-4-32k"
-             "gpt-4-1106-preview" "gpt-4-0125-preview")))
+   :models '("gpt-3.5-turbo" "gpt-3.5-turbo-16k" "gpt-4o-mini"
+             "gpt-4" "gpt-4o" "gpt-4-turbo" "gpt-4-turbo-preview"
+             "gpt-4-32k" "gpt-4-1106-preview" "gpt-4-0125-preview")))
 
 (defcustom gptel-backend gptel--openai
   "LLM backend to use.
@@ -1128,6 +1130,7 @@ there."
     (save-restriction
       (let* ((max-entries (and gptel--num-messages-to-send
                                (* 2 gptel--num-messages-to-send)))
+             (prompt-end (or prompt-end (point-max)))
              (prompts
               (cond
                ((use-region-p)
@@ -1137,8 +1140,9 @@ there."
                 (gptel--parse-buffer gptel-backend max-entries))
                ((derived-mode-p 'org-mode)
                 (require 'gptel-org)
-                (gptel-org--create-prompt (or prompt-end (point-max))))
-               (t (goto-char (or prompt-end (point-max)))
+                (goto-char prompt-end)
+                (gptel-org--create-prompt prompt-end))
+               (t (goto-char prompt-end)
                   (gptel--parse-buffer gptel-backend max-entries)))))
         ;; Inject context chunks into the last user prompt if required
         ;; NOTE: prompts is modified in place
